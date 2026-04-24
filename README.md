@@ -25,4 +25,4 @@ this custom header using the header key 'x-amz-meta-<custom-header-key>: <value>
 <custom-header-key> should be exactly the same that is used while generating the pre-signed url.
 Later this header can be fetched using 's3_client.head_object(Bucket=bucket, Key=key)' when needed.
 TODO: Test if this works without explictly setting the 'Metadata' while generating pre-signed url (if you get 403, it likely
-means aws sees signature mismatch -> No job_id header while generating url, but seeing job_id header while client uploads)!
+means aws sees signature mismatch -> No job_id header while generating url, but seeing job_id header while client uploads)
