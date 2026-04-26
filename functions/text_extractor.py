@@ -12,20 +12,8 @@ def lambda_handler(event, context):
     key = event['detail']['object']['key']
     response = s3_client.head_object(Bucket=bucket, Key=key)
     job_id = response["Metadata"]["job_id"]
+    audio_language = response["Metadata"]["audio_language"]
 
-    table.put_item(
-       Item = {
-          'jobId': job_id,
-          'userId': "vishnu",
-          'status': 'IN_PROGRESS',
-          'inputS3Key': key,
-          'createdAt': str(time.time()),
-          'TimeToExist': int(time.time()) + (24 * 60 * 60)
-       }
-    )
-
-    print(f"Dynamo entry created for jobId: {job_id}")
-   
     response = textract_client.detect_document_text(
     Document={
         'S3Object': {
@@ -34,9 +22,26 @@ def lambda_handler(event, context):
         }
     }
     )
-    for block in response['Blocks']:
-     if block['BlockType'] == 'LINE':
-        print(block['Text'])
+    text = "\n".join(
+      block['Text']
+      for block in response['Blocks']
+      if block['BlockType'] == 'LINE'
+    )
+    
+    table.put_item(
+       Item = {
+          'jobId': job_id,
+          'userId': "vishnu",
+          'status': 'TEXT_EXTRACTED',
+          'inputS3Key': key,
+          'createdAt': str(time.time()),
+          'TimeToExist': int(time.time()) + (24 * 60 * 60)
+       }
+    )
+
+    print(f"Dynamo entry created for jobId: {job_id}")
+
+    return {"text": text, "job_id": job_id, "audio_language": audio_language, "file_name": key};
    except Exception as e:
         print(f"Failure: {e}")
         raise

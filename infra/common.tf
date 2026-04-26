@@ -55,3 +55,23 @@ variable "function_name_upload_url_generator" {
   type    = string
   default = "upload-url-generator"
 }
+
+variable "function_name_download_url_generator" {
+  type    = string
+  default = "download-url-generator"
+}
+
+variable "function_name_language_detector" {
+  type    = string
+  default = "language-detector"
+}
+
+variable "function_name_text_translator" {
+  type    = string
+  default = "text-translator"
+}
+
+variable "function_name_audio_generator" {
+  type = string
+  default = "audio-generator"
+}

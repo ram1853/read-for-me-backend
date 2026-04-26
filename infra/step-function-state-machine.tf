@@ -1,5 +1,4 @@
 resource "aws_sfn_state_machine" "read-for-me-job-processing-state-machine" {
-  depends_on = [ aws_lambda_function.text-extractor ]
   name     = "read-for-me-job-processing-state-machine"
   role_arn = aws_iam_role.step_function_execution_role.arn
 
@@ -11,6 +10,21 @@ resource "aws_sfn_state_machine" "read-for-me-job-processing-state-machine" {
     "text-extractor": {
       "Type": "Task",
       "Resource": "${aws_lambda_function.text-extractor.arn}",
+      "Next": "language-detector"
+    },
+    "language-detector": {
+      "Type": "Task",
+      "Resource": "${aws_lambda_function.language-detector.arn}",
+      "Next": "text-translator"
+    },
+    "text-translator": {
+      "Type": "Task",
+      "Resource": "${aws_lambda_function.text-translator.arn}",
+      "Next": "audio-generator"
+    },
+    "audio-generator": {
+      "Type": "Task",
+      "Resource": "${aws_lambda_function.audio-generator.arn}",
       "End": true
     }
   }
@@ -30,7 +44,7 @@ resource "aws_iam_policy" "state-machine-lambda-invoke-policy" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["lambda:InvokeFunction"] 
-      Resource = [aws_lambda_function.text-extractor.arn]
+      Resource = [aws_lambda_function.text-extractor.arn, aws_lambda_function.language-detector.arn, aws_lambda_function.text-translator.arn, aws_lambda_function.audio-generator.arn]
     }]
   })
 }

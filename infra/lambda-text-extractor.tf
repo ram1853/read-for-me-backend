@@ -102,7 +102,7 @@ resource "aws_lambda_function" "text-extractor" {
   source_code_hash  = data.archive_file.lambda_zip_text_extractor.output_base64sha256
 }
 
-resource "aws_lambda_permission" "state_machine_lambda_permission" {
+resource "aws_lambda_permission" "state_machine_lambda_permission_for_text_extractor" {
   statement_id  = "AllowExecutionFromStateMachine"
   action        = "lambda:InvokeFunction"
   function_name = var.function_name_text_extractor
