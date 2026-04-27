@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Read for Me</title>
+    <link href="https://cdn.jsdelivr.net/npm/filepond@4.31.4/dist/filepond.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg: #f7f4ef;
+        --surface: #fffdf9;
+        --border: #e2ddd6;
+        --text: #2a2520;
+        --muted: #8a8078;
+        --accent: #c0622a;
+        --accent-light: #f5ede6;
+        --accent-hover: #a3521f;
+        --radius: 12px;
+      }
+
+      body {
+        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 3rem 1rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 580px;
+        box-shadow: 0 4px 32px rgba(42,37,32,0.07);
+      }
+
+      .card-header {
+        margin-bottom: 2rem;
+      }
+
+      .card-header h1 {
+        font-family: 'Lora', serif;
+        font-size: 1.9rem;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.02em;
+      }
+
+      .card-header p {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-top: 0.35rem;
+        font-weight: 300;
+      }
+
+      /* Language selector row */
+      .language-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .language-row label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      select#language {
+        flex: 1;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.95rem;
+        padding: 0.6rem 1rem;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--text);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8078' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      select#language:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(192,98,42,0.12);
+      }
+
+      select#language:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        background-color: #f0ece6;
+      }
+
+      /* Reset button */
+      #reset-btn {
+        display: none;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.85rem;
+        color: var(--muted);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: border-color 0.2s, color 0.2s, background 0.2s;
+      }
+
+      #reset-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      #reset-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-light);
+      }
+
+      #reset-btn svg {
+        flex-shrink: 0;
+      }
+
+      #reset-btn.visible { display: flex; }
+
+      /* Upload section */
+      #upload-section {
+        display: none;
+        animation: fadeSlideIn 0.35s ease forwards;
+      }
+
+      #upload-section.visible { display: block; }
+
+      @keyframes fadeSlideIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Upload locked state */
+      #upload-section.locked {
+        pointer-events: none;
+        opacity: 0.5;
+        filter: grayscale(0.4);
+        transition: opacity 0.3s, filter 0.3s;
+      }
+
+      /* FilePond overrides */
+      .filepond--root {
+        font-family: 'DM Sans', sans-serif !important;
+        border-radius: var(--radius) !important;
+      }
+
+      .filepond--panel-root {
+        background-color: var(--accent-light) !important;
+        border: 2px dashed #d4a48a !important;
+        border-radius: var(--radius) !important;
+      }
+
+      .filepond--label-action { text-decoration-color: var(--accent) !important; color: var(--accent) !important; }
+      .filepond--drip-blob { background: var(--accent) !important; }
+      .filepond--item-panel { background: var(--accent) !important; }
+
+      /* Spinner */
+      #spinner-section {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 2rem 0 1rem;
+        animation: fadeSlideIn 0.35s ease forwards;
+      }
+
+      #spinner-section.visible { display: flex; }
+
+      .spinner-ring {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: 3px solid var(--border);
+        border-top-color: var(--accent);
+        animation: spin 0.9s linear infinite;
+      }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .spinner-label {
+        font-size: 0.9rem;
+        color: var(--muted);
+        font-style: italic;
+        font-family: 'Lora', serif;
+      }
+
+      .spinner-dots span {
+        display: inline-block;
+        animation: blink 1.4s infinite both;
+      }
+      .spinner-dots span:nth-child(2) { animation-delay: 0.2s; }
+      .spinner-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+      @keyframes blink {
+        0%, 80%, 100% { opacity: 0; }
+        40% { opacity: 1; }
+      }
+
+      /* Audio player */
+      #audio-section {
+        display: none;
+        animation: fadeSlideIn 0.4s ease forwards;
+      }
+
+      #audio-section.visible { display: block; }
+
+      .audio-card {
+        background: linear-gradient(135deg, #2a2520 0%, #3d3530 100%);
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin-top: 0.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .audio-card::before {
+        content: '';
+        position: absolute;
+        top: -40px; right: -40px;
+        width: 140px; height: 140px;
+        border-radius: 50%;
+        background: rgba(192,98,42,0.18);
+        pointer-events: none;
+      }
+
+      .audio-card::after {
+        content: '';
+        position: absolute;
+        bottom: -20px; left: 30px;
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        background: rgba(192,98,42,0.1);
+        pointer-events: none;
+      }
+
+      .audio-label {
+        font-family: 'Lora', serif;
+        font-size: 0.8rem;
+        font-weight: 400;
+        font-style: italic;
+        color: rgba(255,255,255,0.45);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .audio-label::before {
+        content: '';
+        display: inline-block;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: #5dd87a;
+        box-shadow: 0 0 6px #5dd87a;
+        animation: pulse-dot 1.8s ease-in-out infinite;
+      }
+
+      @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+      }
+
+      #audio-player {
+        width: 100%;
+        height: 48px;
+        border-radius: 10px;
+        position: relative;
+        z-index: 1;
+        filter: invert(1) hue-rotate(180deg) brightness(0.85);
+        accent-color: var(--accent);
+      }
+
+      /* Divider */
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 1.5rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="card-header">
+        <h1>Read for Me</h1>
+        <p>Upload a document and get an audio version in your chosen language.</p>
+      </div>
+
+      <div class="language-row">
+        <label for="language">Voice</label>
+        <select name="language" id="language">
+          <option value="">— pick a language —</option>
+          <option value="arb">Arabic</option>
+          <option value="ar-AE">Arabic (Gulf)</option>
+          <option value="ca-ES">Catalan</option>
+          <option value="yue-CN">Chinese (Cantonese)</option>
+          <option value="cmn-CN">Chinese (Mandarin)</option>
+          <option value="cs-CZ">Czech</option>
+          <option value="da-DK">Danish</option>
+          <option value="nl-BE">Dutch (Belgian)</option>
+          <option value="nl-NL">Dutch</option>
+          <option value="en-AU">English (Australian)</option>
+          <option value="en-GB">English (British)</option>
+          <option value="en-IN">English (Indian)</option>
+          <option value="en-NZ">English (New Zealand)</option>
+          <option value="en-SG">English (Singaporean)</option>
+          <option value="en-ZA">English (South African)</option>
+          <option value="en-US">English (US)</option>
+          <option value="en-GB-WLS">English (Welsh)</option>
+          <option value="fi-FI">Finnish</option>
+          <option value="fr-FR">French</option>
+          <option value="fr-BE">French (Belgian)</option>
+          <option value="fr-CA">French (Canadian)</option>
+          <option value="hi-IN">Hindi</option>
+          <option value="de-DE">German</option>
+          <option value="de-AT">German (Austrian)</option>
+          <option value="de-CH">German (Swiss standard)</option>
+          <option value="is-IS">Icelandic</option>
+          <option value="it-IT">Italian</option>
+          <option value="ja-JP">Japanese</option>
+          <option value="ko-KR">Korean</option>
+          <option value="nb-NO">Norwegian</option>
+          <option value="pl-PL">Polish</option>
+          <option value="pt-BR">Portuguese (Brazilian)</option>
+          <option value="pt-PT">Portuguese (European)</option>
+          <option value="ro-RO">Romanian</option>
+          <option value="ru-RU">Russian</option>
+          <option value="es-ES">Spanish (Spain)</option>
+          <option value="es-MX">Spanish (Mexican)</option>
+          <option value="es-US">Spanish (US)</option>
+          <option value="sv-SE">Swedish</option>
+          <option value="tr-TR">Turkish</option>
+          <option value="cy-GB">Welsh</option>
+        </select>
+
+        <button id="reset-btn" title="Start over">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 7a5 5 0 1 0 1-2.96" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M2 2.5V4.5H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Reset
+        </button>
+      </div>
+
+      <div id="upload-section">
+        <input type="file" id="filepond" hidden />
+      </div>
+
+      <div id="spinner-section">
+        <div class="spinner-ring"></div>
+        <div class="spinner-label">
+          Generating your audio<span class="spinner-dots"><span>.</span><span>.</span><span>.</span></span>
+        </div>
+      </div>
+
+      <div id="audio-section">
+        <div class="divider"></div>
+        <div class="audio-card">
+          <div class="audio-label">Ready to play</div>
+          <audio id="audio-player" controls></audio>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/filepond@4.31.4/dist/filepond.min.js"></script>
+    <script>
+      const UPLOAD_API   = "https://h53b3iburg.execute-api.ap-south-1.amazonaws.com/dev/upload-url";
+      const DOWNLOAD_API = "https://h53b3iburg.execute-api.ap-south-1.amazonaws.com/dev/download-url";
+
+      const languageEl     = document.getElementById("language");
+      const uploadSection  = document.getElementById("upload-section");
+      const spinnerSection = document.getElementById("spinner-section");
+      const audioSection   = document.getElementById("audio-section");
+      const audioPlayer    = document.getElementById("audio-player");
+      const resetBtn       = document.getElementById("reset-btn");
+
+      let pondInstance = null;
+
+      function showSpinner()  { spinnerSection.classList.add("visible"); resetBtn.disabled = true; }
+      function hideSpinner()  { spinnerSection.classList.remove("visible"); }
+      function showAudio(url) {
+        hideSpinner();
+        audioPlayer.src = url;
+        audioSection.classList.add("visible");
+        resetBtn.disabled = false;
+      }
+
+      function reset() {
+        // Destroy filepond if it exists
+        if (pondInstance) { pondInstance.destroy(); pondInstance = null; }
+
+        // Re-add the raw input for filepond
+        uploadSection.innerHTML = '<input type="file" id="filepond" hidden />';
+
+        // Hide sections
+        uploadSection.classList.remove("visible", "locked");
+        spinnerSection.classList.remove("visible");
+        audioSection.classList.remove("visible");
+        audioPlayer.src = "";
+
+        // Re-enable dropdown, hide reset
+        languageEl.disabled = false;
+        languageEl.value = "";
+        resetBtn.disabled = false;
+        resetBtn.classList.remove("visible");
+      }
+
+      function pollForAudio(jobId, attemptsLeft = 5) {
+        if (attemptsLeft === 0) {
+          hideSpinner();
+          resetBtn.disabled = false;
+          alert("Audio generation timed out. Please try again.");
+          return;
+        }
+
+        setTimeout(() => {
+          fetch(DOWNLOAD_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ job_id: jobId }),
+          })
+            .then(res => res.json())
+            .then(data => {
+              if (data.status === "AUDIO_GENERATION_DONE" && data.download_url) {
+                showAudio(data.download_url);
+              } else {
+                pollForAudio(jobId, attemptsLeft - 1);
+              }
+            })
+            .catch(err => {
+              console.error("Status check error:", err);
+              pollForAudio(jobId, attemptsLeft - 1);
+            });
+        }, 5000);
+      }
+
+      languageEl.addEventListener("change", function () {
+        if (!this.value) return;
+
+        // Lock dropdown, show reset button
+        languageEl.disabled = true;
+        resetBtn.classList.add("visible");
+
+        // Show upload
+        uploadSection.classList.add("visible");
+
+        pondInstance = FilePond.create(document.getElementById("filepond"), {
+          server: {
+            process: (fieldName, file, metadata, load, error, progress, abort) => {
+              fetch(UPLOAD_API, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  fileName: file.name,
+                  userName: "vishnu",
+                  audioLanguage: languageEl.value,
+                }),
+              })
+                .then(res => res.json())
+                .then(data => {
+                  const presignedUrl = data.url;
+                  const jobId = data.job_id;
+
+                  const xhr = new XMLHttpRequest();
+                  xhr.open("PUT", presignedUrl);
+                  xhr.setRequestHeader("Content-Type", data.content_type);
+                  xhr.setRequestHeader("x-amz-meta-job_id", jobId);
+                  xhr.setRequestHeader("x-amz-meta-audio_language", languageEl.value);
+
+                  xhr.upload.onprogress = e =>
+                    progress(e.lengthComputable, e.loaded, e.total);
+
+                  xhr.onload = () => {
+                    if (xhr.status < 300) {
+                      load(xhr.responseText);
+                      pondInstance.disableBrowse = true;
+                      pondInstance.readOnly = true;
+                      uploadSection.classList.add("locked");
+                      showSpinner();
+                      pollForAudio(jobId);
+                    } else {
+                      resetBtn.disabled = false;
+                      error("Upload failed");
+                    }
+                  };
+
+                  xhr.onerror = () => { resetBtn.disabled = false; error("Network error"); };
+                  xhr.send(file);
+                  resetBtn.disabled = true;
+
+                  abort = () => { xhr.abort(); abort(); };
+                })
+                .catch(() => error("Failed to get pre-signed URL"));
+
+              return { abort: () => abort() };
+            },
+            revert: null, restore: null, load: null, fetch: null,
+          },
+        });
+      });
+
+      resetBtn.addEventListener("click", reset);
+    </script>
+  </body>
+</html>

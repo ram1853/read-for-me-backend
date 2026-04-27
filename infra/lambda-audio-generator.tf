@@ -87,8 +87,8 @@ resource "aws_iam_role_policy_attachment" "attach-s3-policy-to-audio-generator" 
 
 data "archive_file" "lambda_zip_audio_generator" {
   type        = "zip"
-  source_file = "${path.module}/../functions/audio_generator.py" 
-  output_path = "${path.module}/lambda_function_audio_generator.zip" 
+  source_file = "${path.module}/../backend/audio_generator.py" 
+  output_path = "${path.module}/../backend/lambda_function_audio_generator.zip" 
 }
 
 

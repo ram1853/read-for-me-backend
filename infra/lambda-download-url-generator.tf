@@ -76,8 +76,8 @@ resource "aws_iam_role_policy_attachment" "attach-dynamodb-policy-to-download-ur
 
 data "archive_file" "lambda_zip_download_url_generator" {
   type        = "zip"
-  source_file = "${path.module}/../functions/download_url_generator.py" 
-  output_path = "${path.module}/lambda_function_download_url_generator.zip" 
+  source_file = "${path.module}/../backend/download_url_generator.py" 
+  output_path = "${path.module}/../backend/lambda_function_download_url_generator.zip" 
 }
 
 

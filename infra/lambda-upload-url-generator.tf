@@ -57,8 +57,8 @@ resource "aws_iam_role_policy_attachment" "attach-s3-policy" {
 
 data "archive_file" "lambda_zip_url_generator" {
   type        = "zip"
-  source_file = "${path.module}/../functions/upload_url_generator.py" 
-  output_path = "${path.module}/lambda_function_url_generator.zip" 
+  source_file = "${path.module}/../backend/upload_url_generator.py" 
+  output_path = "${path.module}/../backend/lambda_function_url_generator.zip"
 }
 
 

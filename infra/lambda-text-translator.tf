@@ -68,8 +68,8 @@ resource "aws_iam_role_policy_attachment" "attach-dynamodb-policy-to-text-transl
 
 data "archive_file" "lambda_zip_text_translator" {
   type        = "zip"
-  source_file = "${path.module}/../functions/text_translator.py" 
-  output_path = "${path.module}/lambda_function_text_translator.zip" 
+  source_file = "${path.module}/../backend/text_translator.py" 
+  output_path = "${path.module}/../backend/lambda_function_text_translator.zip" 
 }
 
 

@@ -87,8 +87,8 @@ resource "aws_iam_role_policy_attachment" "attach-dynamodb-policy-to-text-extrac
 
 data "archive_file" "lambda_zip_text_extractor" {
   type        = "zip"
-  source_file = "${path.module}/../functions/text_extractor.py" 
-  output_path = "${path.module}/lambda_function_text_extractor.zip" 
+  source_file = "${path.module}/../backend/text_extractor.py" 
+  output_path = "${path.module}/../backend/lambda_function_text_extractor.zip" 
 }
 
 

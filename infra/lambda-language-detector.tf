@@ -68,8 +68,8 @@ resource "aws_iam_role_policy_attachment" "attach-dynamodb-policy-to-language-de
 
 data "archive_file" "lambda_zip_language_detector" {
   type        = "zip"
-  source_file = "${path.module}/../functions/language_detector.py" 
-  output_path = "${path.module}/lambda_function_language_detector.zip" 
+  source_file = "${path.module}/../backend/language_detector.py" 
+  output_path = "${path.module}/../backend/lambda_function_language_detector.zip" 
 }
 
 
