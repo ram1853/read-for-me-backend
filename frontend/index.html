@@ -303,9 +303,70 @@
         background: var(--border);
         margin: 1.5rem 0;
       }
+
+      /* Top nav bar */
+      #top-nav {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 52px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0 1.5rem;
+        gap: 0.85rem;
+        z-index: 100;
+        box-shadow: 0 1px 8px rgba(42,37,32,0.06);
+      }
+
+      #user-email {
+        font-size: 0.82rem;
+        color: var(--muted);
+        font-weight: 400;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #signout-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.9rem;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.82rem;
+        color: var(--muted);
+        cursor: pointer;
+        transition: border-color 0.2s, color 0.2s, background 0.2s;
+      }
+
+      #signout-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-light);
+      }
+
+      body { padding-top: 4.5rem; }
     </style>
   </head>
   <body>
+    <nav id="top-nav">
+      <span id="user-email"></span>
+      <button id="signout-btn">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 2H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M9 10l3-3-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 7H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Sign out
+      </button>
+    </nav>
+
     <div class="card">
       <div class="card-header">
         <h1>Read for Me</h1>
@@ -389,143 +450,146 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/filepond@4.31.4/dist/filepond.min.js"></script>
+    <script src="./authentication.js"></script>
     <script>
-      const UPLOAD_API   = "https://h53b3iburg.execute-api.ap-south-1.amazonaws.com/dev/upload-url";
-      const DOWNLOAD_API = "https://h53b3iburg.execute-api.ap-south-1.amazonaws.com/dev/download-url";
+      // ── Boot ──────────────────────────────────────────────────────────────────
+      Auth.ensureAuth().then(authenticated => {
+        if (!authenticated) return; // redirecting to Cognito, nothing to do
 
-      const languageEl     = document.getElementById("language");
-      const uploadSection  = document.getElementById("upload-section");
-      const spinnerSection = document.getElementById("spinner-section");
-      const audioSection   = document.getElementById("audio-section");
-      const audioPlayer    = document.getElementById("audio-player");
-      const resetBtn       = document.getElementById("reset-btn");
+        // ── App ───────────────────────────────────────────────────────────────
+        const UPLOAD_API   = "https://fbbpdv0r0b.execute-api.ap-south-1.amazonaws.com/dev/upload-url";
+        const DOWNLOAD_API = "https://fbbpdv0r0b.execute-api.ap-south-1.amazonaws.com/dev/download-url";
 
-      let pondInstance = null;
+        const languageEl     = document.getElementById("language");
+        const uploadSection  = document.getElementById("upload-section");
+        const spinnerSection = document.getElementById("spinner-section");
+        const audioSection   = document.getElementById("audio-section");
+        const audioPlayer    = document.getElementById("audio-player");
+        const resetBtn       = document.getElementById("reset-btn");
 
-      function showSpinner()  { spinnerSection.classList.add("visible"); resetBtn.disabled = true; }
-      function hideSpinner()  { spinnerSection.classList.remove("visible"); }
-      function showAudio(url) {
-        hideSpinner();
-        audioPlayer.src = url;
-        audioSection.classList.add("visible");
-        resetBtn.disabled = false;
-      }
+        let pondInstance = null;
 
-      function reset() {
-        // Destroy filepond if it exists
-        if (pondInstance) { pondInstance.destroy(); pondInstance = null; }
-
-        // Re-add the raw input for filepond
-        uploadSection.innerHTML = '<input type="file" id="filepond" hidden />';
-
-        // Hide sections
-        uploadSection.classList.remove("visible", "locked");
-        spinnerSection.classList.remove("visible");
-        audioSection.classList.remove("visible");
-        audioPlayer.src = "";
-
-        // Re-enable dropdown, hide reset
-        languageEl.disabled = false;
-        languageEl.value = "";
-        resetBtn.disabled = false;
-        resetBtn.classList.remove("visible");
-      }
-
-      function pollForAudio(jobId, attemptsLeft = 5) {
-        if (attemptsLeft === 0) {
+        function showSpinner() {
+          spinnerSection.classList.add("visible");
+          resetBtn.disabled = true;
+        }
+        function hideSpinner() { spinnerSection.classList.remove("visible"); }
+        function showAudio(url) {
           hideSpinner();
+          audioPlayer.src = url;
+          audioSection.classList.add("visible");
           resetBtn.disabled = false;
-          alert("Audio generation timed out. Please try again.");
-          return;
         }
 
-        setTimeout(() => {
-          fetch(DOWNLOAD_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ job_id: jobId }),
-          })
-            .then(res => res.json())
-            .then(data => {
-              if (data.status === "AUDIO_GENERATION_DONE" && data.download_url) {
-                showAudio(data.download_url);
-              } else {
-                pollForAudio(jobId, attemptsLeft - 1);
-              }
+        function reset() {
+          if (pondInstance) { pondInstance.destroy(); pondInstance = null; }
+          uploadSection.innerHTML = '<input type="file" id="filepond" hidden />';
+          uploadSection.classList.remove("visible", "locked");
+          spinnerSection.classList.remove("visible");
+          audioSection.classList.remove("visible");
+          audioPlayer.src = "";
+          languageEl.disabled = false;
+          languageEl.value = "";
+          resetBtn.disabled = false;
+          resetBtn.classList.remove("visible");
+        }
+
+        function pollForAudio(jobId, attemptsLeft = 5) {
+          if (attemptsLeft === 0) {
+            hideSpinner();
+            resetBtn.disabled = false;
+            alert("Audio generation timed out. Please try again.");
+            return;
+          }
+          setTimeout(async () => {
+            const token = await Auth.getValidIdToken();
+            if (!token) throw new Error("Not authenticated");
+            fetch(DOWNLOAD_API, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+              body: JSON.stringify({ job_id: jobId }),
             })
-            .catch(err => {
-              console.error("Status check error:", err);
-              pollForAudio(jobId, attemptsLeft - 1);
-            });
-        }, 5000);
-      }
-
-      languageEl.addEventListener("change", function () {
-        if (!this.value) return;
-
-        // Lock dropdown, show reset button
-        languageEl.disabled = true;
-        resetBtn.classList.add("visible");
-
-        // Show upload
-        uploadSection.classList.add("visible");
-
-        pondInstance = FilePond.create(document.getElementById("filepond"), {
-          server: {
-            process: (fieldName, file, metadata, load, error, progress, abort) => {
-              fetch(UPLOAD_API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  fileName: file.name,
-                  userName: "vishnu",
-                  audioLanguage: languageEl.value,
-                }),
+              .then(res => res.json())
+              .then(data => {
+                if (data.status === "AUDIO_GENERATION_DONE" && data.download_url) {
+                  showAudio(data.download_url);
+                } else {
+                  pollForAudio(jobId, attemptsLeft - 1);
+                }
               })
-                .then(res => res.json())
-                .then(data => {
-                  const presignedUrl = data.url;
-                  const jobId = data.job_id;
+              .catch(err => {
+                console.error("Status check error:", err);
+                pollForAudio(jobId, attemptsLeft - 1);
+              });
+          }, 5000);
+        }
 
-                  const xhr = new XMLHttpRequest();
-                  xhr.open("PUT", presignedUrl);
-                  xhr.setRequestHeader("Content-Type", data.content_type);
-                  xhr.setRequestHeader("x-amz-meta-job_id", jobId);
-                  xhr.setRequestHeader("x-amz-meta-audio_language", languageEl.value);
+        languageEl.addEventListener("change", function () {
+          if (!this.value) return;
 
-                  xhr.upload.onprogress = e =>
-                    progress(e.lengthComputable, e.loaded, e.total);
+          languageEl.disabled = true;
+          resetBtn.classList.add("visible");
+          uploadSection.classList.add("visible");
 
-                  xhr.onload = () => {
-                    if (xhr.status < 300) {
-                      load(xhr.responseText);
-                      pondInstance.disableBrowse = true;
-                      pondInstance.readOnly = true;
-                      uploadSection.classList.add("locked");
-                      showSpinner();
-                      pollForAudio(jobId);
-                    } else {
-                      resetBtn.disabled = false;
-                      error("Upload failed");
-                    }
-                  };
-
-                  xhr.onerror = () => { resetBtn.disabled = false; error("Network error"); };
-                  xhr.send(file);
-                  resetBtn.disabled = true;
-
-                  abort = () => { xhr.abort(); abort(); };
+          pondInstance = FilePond.create(document.getElementById("filepond"), {
+            server: {
+              process: async (fieldName, file, metadata, load, error, progress, abort) => {
+                const token = await Auth.getValidIdToken();
+                if (!token) throw new Error("Not authenticated");
+                fetch(UPLOAD_API, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                  body: JSON.stringify({
+                    fileName: file.name,
+                    userName: "vishnu",
+                    audioLanguage: languageEl.value,
+                  }),
                 })
-                .catch(() => error("Failed to get pre-signed URL"));
+                  .then(res => res.json())
+                  .then(data => {
+                    const presignedUrl = data.url;
+                    const jobId        = data.job_id;
 
-              return { abort: () => abort() };
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("PUT", presignedUrl);
+                    xhr.setRequestHeader("Content-Type", data.content_type);
+                    xhr.setRequestHeader("x-amz-meta-job_id", jobId);
+                    xhr.setRequestHeader("x-amz-meta-audio_language", languageEl.value);
+
+                    xhr.upload.onprogress = e =>
+                      progress(e.lengthComputable, e.loaded, e.total);
+
+                    xhr.onload = () => {
+                      if (xhr.status < 300) {
+                        load(xhr.responseText);
+                        pondInstance.disableBrowse = true;
+                        pondInstance.readOnly = true;
+                        uploadSection.classList.add("locked");
+                        showSpinner();
+                        pollForAudio(jobId);
+                      } else {
+                        resetBtn.disabled = false;
+                        error("Upload failed");
+                      }
+                    };
+
+                    xhr.onerror = () => { resetBtn.disabled = false; error("Network error"); };
+                    xhr.send(file);
+                    resetBtn.disabled = true;
+
+                    abort = () => { xhr.abort(); abort(); };
+                  })
+                  .catch(() => error("Failed to get pre-signed URL"));
+
+                return { abort: () => abort() };
+              },
+              revert: null, restore: null, load: null, fetch: null,
             },
-            revert: null, restore: null, load: null, fetch: null,
-          },
+          });
         });
-      });
 
-      resetBtn.addEventListener("click", reset);
+        resetBtn.addEventListener("click", reset);
+      });
     </script>
   </body>
 </html>

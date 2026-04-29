@@ -77,7 +77,7 @@ resource "aws_api_gateway_integration_response" "options_upload_url_integration_
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
     "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
@@ -91,7 +91,7 @@ resource "aws_api_gateway_integration_response" "options_download_url_integratio
   status_code = "200"
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
     "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }

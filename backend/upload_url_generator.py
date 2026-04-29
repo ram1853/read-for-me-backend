@@ -20,7 +20,7 @@ def generate_presigned_url(s3_client, bucket, key, expires_in, audio_language):
    return {
       "statusCode": 200,
       "headers": {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": "*"
         },
       "body": json.dumps({"url": url, "content_type": content_type, "job_id": job_id})
    }

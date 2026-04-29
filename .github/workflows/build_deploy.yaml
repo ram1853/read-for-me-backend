@@ -24,3 +24,18 @@ jobs:
       run: |
         .github/scripts/terraform.sh init
         .github/scripts/terraform.sh "apply -auto-approve"
+    
+    - name: Zip frontend code and upload to S3
+      working-directory: frontend
+      run: |
+          zip -j deploy.zip index.html authentication.js
+          aws s3 cp deploy.zip s3://read-for-me-frontend/deploy.zip
+    
+    - name: Deploy frontend
+      run: |
+        aws amplify start-deployment \
+            --app-id d1trqyve4ac16v \
+            --branch-name dev \
+            --source-url s3://read-for-me-frontend/deploy.zip \
+            --source-url-type ZIP
+
