@@ -26,9 +26,9 @@ resource "aws_iam_policy" "amplify-policy" {
     Version = "2012-10-17"
     Statement = [
         {
-            Action  = ["s3:GetObject", "amplify:StartDeployment"]
+            Action  = ["s3:GetObject", "s3:ListBucket"]
             Effect   = "Allow"
-            Resource = ["arn:aws:s3:::${var.frontend-bucket}/*", "arn:aws:amplify:ap-south-1:*:apps/*/branches/*"]
+            Resource = ["arn:aws:s3:::${var.frontend-bucket}/*", "arn:aws:s3:::${var.frontend-bucket}"]
         }
     ]
   })
