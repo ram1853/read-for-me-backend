@@ -56,3 +56,7 @@ But if your app needs authorization flow, then create custom scopes under resour
 
 TODO:
 Running terraform apply after api changes is not automatically re-deploying the api.
+Only after infra is provisioned, we will get to know the cognito id, amplify app id and api gateway stage uri. These values are needed in index.html and authentication.js. So right now i manually update these values and deploy frontend once the infra is provisioned, also the github workflow needs the amplify app id to start the deployment - so it is not fully automated yet.
+
+--AWS Amplify--
+Amplify has to pull the frontend zip from s3 bucket for deployment. so make sure the s3 bucket policy allows amplify to do that.

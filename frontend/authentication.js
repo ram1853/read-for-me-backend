@@ -36,6 +36,7 @@ const Auth = (() => {
 
         const claims = parseJwt(tokens.id_token);
         sessionStorage.setItem("user_email", claims?.email || "");
+        sessionStorage.setItem("user_name", claims?.["cognito:username"] || "");
     }
 
     function clear() {
@@ -160,6 +161,10 @@ const Auth = (() => {
         return sessionStorage.getItem("user_email") || "";
     }
 
+    function getUserName() {
+        return sessionStorage.getItem("user_name") || "";
+    }
+
     function signOut() {
         clear();
         window.location.href = LOGOUT_URL;
@@ -168,6 +173,7 @@ const Auth = (() => {
     return {
         ensureAuth,
         getUserEmail,
+        getUserName,
         signOut,
         getValidIdToken
     };
