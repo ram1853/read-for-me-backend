@@ -41,9 +41,27 @@ data "aws_iam_policy_document" "assume_role_events" {
     }
 }
 
+data "aws_iam_policy_document" "assume_role_amplify" {
+    statement {
+      effect = "Allow"
+
+      principals {
+        type        = "Service"
+        identifiers = ["amplify.amazonaws.com"]
+      }
+
+      actions = ["sts:AssumeRole"]
+    }
+}
+
 variable "s3-bucket-name" {
   type = string
   default = "read-for-me"
+}
+
+variable "frontend-bucket" {
+  type = string
+  default = "read-for-me-frontend"
 }
 
 variable "function_name_text_extractor" {
