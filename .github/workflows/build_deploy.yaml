@@ -38,4 +38,5 @@ jobs:
             --branch-name dev \
             --source-url s3://read-for-me-frontend/deploy.zip \
             --source-url-type ZIP
+            --region ap-south-1
 
