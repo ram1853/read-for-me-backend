@@ -27,6 +27,11 @@ resource "aws_cognito_user_pool_client" "userpool-client" {
   explicit_auth_flows                  = ["ALLOW_USER_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
   prevent_user_existence_errors        = "ENABLED"
   enable_token_revocation              = true
+  id_token_validity                    = 5 
+
+  token_validity_units {
+    id_token = "minutes"
+  }
 }
 
 resource "aws_cognito_managed_login_branding" "managed-login" {
