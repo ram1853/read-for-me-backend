@@ -81,7 +81,7 @@ const Auth = (() => {
             const data = await resp.json();
 
             if (data.id_token) {
-                console('new tokens obtained using refresh-token, saving them to session storage');
+                console.log('new tokens obtained using refresh-token, saving them to session storage');
                 saveTokens(data);
                 return true;
             }
