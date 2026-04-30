@@ -34,11 +34,14 @@ jobs:
       - name: Capture Terraform outputs
         id: tf_output
         run: |
-          echo "cognito_client_id=$(terraform output -raw cognito_client_id)" >> $GITHUB_OUTPUT
-          echo "cognito_domain=$(terraform output -raw cognito_domain)"       >> $GITHUB_OUTPUT
-          echo "amplify_app_id=$(terraform output -raw amplify_app_id)"       >> $GITHUB_OUTPUT
-          echo "amplify_app_url=$(terraform output -raw amplify_app_url)"     >> $GITHUB_OUTPUT
-          echo "api_stage_invoke_url=$(terraform output -raw api_stage)"      >> $GITHUB_OUTPUT
+          get_output() {
+            .github/scripts/terraform.sh "output -raw $1"
+          }
+          echo "cognito_client_id=$(get_output cognito_client_id)" >> $GITHUB_OUTPUT
+          echo "cognito_domain=$(get_output cognito_domain)"       >> $GITHUB_OUTPUT
+          echo "amplify_app_id=$(get_output amplify_app_id)"       >> $GITHUB_OUTPUT
+          echo "amplify_app_url=$(get_output amplify_app_url)"     >> $GITHUB_OUTPUT
+          echo "api_stage_invoke_url=$(get_output api_stage)"      >> $GITHUB_OUTPUT
 
   deploy:
     runs-on: ubuntu-latest
