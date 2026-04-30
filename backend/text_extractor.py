@@ -13,6 +13,7 @@ def lambda_handler(event, context):
     response = s3_client.head_object(Bucket=bucket, Key=key)
     job_id = response["Metadata"]["job_id"]
     audio_language = response["Metadata"]["audio_language"]
+    user_name = response["Metadata"]["user_name"]
 
     response = textract_client.detect_document_text(
     Document={
@@ -31,7 +32,7 @@ def lambda_handler(event, context):
     table.put_item(
        Item = {
           'jobId': job_id,
-          'userId': "vishnu",
+          'userId': user_name,
           'status': 'TEXT_EXTRACTED',
           'inputS3Key': key,
           'createdAt': str(time.time()),

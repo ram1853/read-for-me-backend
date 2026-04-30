@@ -5,7 +5,7 @@ import uuid
 
 s3_client = boto3.client("s3")
 
-def generate_presigned_url(s3_client, bucket, key, expires_in, audio_language):
+def generate_presigned_url(s3_client, bucket, key, expires_in, audio_language, user_name):
    content_type, _ = mimetypes.guess_type(key)
    job_id = str(uuid.uuid4())
    if not content_type:
@@ -14,7 +14,7 @@ def generate_presigned_url(s3_client, bucket, key, expires_in, audio_language):
         'Bucket': bucket,
         'Key': key,
         'ContentType': content_type, 
-        'Metadata': {"job_id": job_id, "audio_language": audio_language}
+        'Metadata': {"job_id": job_id, "audio_language": audio_language, "user_name": user_name}
         }, ExpiresIn=expires_in)
    
    return {
@@ -34,7 +34,7 @@ def lambda_handler(event, context):
     audioLanguage = body.get('audioLanguage')
 
    # The presigned URL is specified to expire in 1000 seconds
-    return generate_presigned_url(s3_client, "read-for-me", userName+"/files/"+fileName, 1000, audioLanguage)
+    return generate_presigned_url(s3_client, "read-for-me", userName+"/files/"+fileName, 1000, audioLanguage, userName)
    except Exception as e:
         print(f"Couldn't get a presigned URL for client method.")
         raise
