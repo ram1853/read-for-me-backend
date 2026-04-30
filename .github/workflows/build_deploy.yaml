@@ -34,27 +34,17 @@ jobs:
       - name: Capture Terraform outputs
         id: tf_output
         run: |
-          EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          COGNITO_CLIENT_ID=$(.github/scripts/terraform.sh output -raw cognito_client_id 2>/dev/null)
+          COGNITO_DOMAIN=$(.github/scripts/terraform.sh output -raw cognito_domain 2>/dev/null)
+          AMPLIFY_APP_ID=$(.github/scripts/terraform.sh output -raw amplify_app_id 2>/dev/null)
+          AMPLIFY_APP_URL=$(.github/scripts/terraform.sh output -raw amplify_app_url 2>/dev/null)
+          API_STAGE=$(.github/scripts/terraform.sh output -raw api_stage 2>/dev/null)
 
-          echo "cognito_client_id<<$EOF_MARKER" >> $GITHUB_OUTPUT
-          .github/scripts/terraform.sh output -raw cognito_client_id >> $GITHUB_OUTPUT
-          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
-
-          echo "cognito_domain<<$EOF_MARKER" >> $GITHUB_OUTPUT
-          .github/scripts/terraform.sh output -raw cognito_domain >> $GITHUB_OUTPUT
-          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
-
-          echo "amplify_app_id<<$EOF_MARKER" >> $GITHUB_OUTPUT
-          .github/scripts/terraform.sh output -raw amplify_app_id >> $GITHUB_OUTPUT
-          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
-
-          echo "amplify_app_url<<$EOF_MARKER" >> $GITHUB_OUTPUT
-          .github/scripts/terraform.sh output -raw amplify_app_url >> $GITHUB_OUTPUT
-          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
-
-          echo "api_stage_invoke_url<<$EOF_MARKER" >> $GITHUB_OUTPUT
-          .github/scripts/terraform.sh output -raw api_stage >> $GITHUB_OUTPUT
-          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+          echo "cognito_client_id=$COGNITO_CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "cognito_domain=$COGNITO_DOMAIN"       >> $GITHUB_OUTPUT
+          echo "amplify_app_id=$AMPLIFY_APP_ID"       >> $GITHUB_OUTPUT
+          echo "amplify_app_url=$AMPLIFY_APP_URL"     >> $GITHUB_OUTPUT
+          echo "api_stage_invoke_url=$API_STAGE"      >> $GITHUB_OUTPUT
 
   deploy:
     runs-on: ubuntu-latest
