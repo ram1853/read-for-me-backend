@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "Running $@"
-
 docker run --rm \
   -v "$(pwd):/workspace" \
   -w /workspace/infra \
