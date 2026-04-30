@@ -34,11 +34,27 @@ jobs:
       - name: Capture Terraform outputs
         id: tf_output
         run: |
-          echo "cognito_client_id=$(.github/scripts/terraform.sh output -raw cognito_client_id)" >> $GITHUB_OUTPUT
-          echo "cognito_domain=$(.github/scripts/terraform.sh output -raw cognito_domain)"       >> $GITHUB_OUTPUT
-          echo "amplify_app_id=$(.github/scripts/terraform.sh output -raw amplify_app_id)"       >> $GITHUB_OUTPUT
-          echo "amplify_app_url=$(.github/scripts/terraform.sh output -raw amplify_app_url)"     >> $GITHUB_OUTPUT
-          echo "api_stage_invoke_url=$(.github/scripts/terraform.sh output -raw api_stage)"      >> $GITHUB_OUTPUT
+          EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+
+          echo "cognito_client_id<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          .github/scripts/terraform.sh output -raw cognito_client_id >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+          echo "cognito_domain<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          .github/scripts/terraform.sh output -raw cognito_domain >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+          echo "amplify_app_id<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          .github/scripts/terraform.sh output -raw amplify_app_id >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+          echo "amplify_app_url<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          .github/scripts/terraform.sh output -raw amplify_app_url >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+          echo "api_stage_invoke_url<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          .github/scripts/terraform.sh output -raw api_stage >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
 
   deploy:
     runs-on: ubuntu-latest
