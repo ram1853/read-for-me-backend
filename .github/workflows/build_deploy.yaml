@@ -7,36 +7,73 @@ on:
       - '**/README.md'
 
 jobs:
-  build_deploy:
+  infra:
     runs-on: ubuntu-latest
+    outputs:
+      cognito_client_id:    ${{ steps.tf_output.outputs.cognito_client_id }}
+      cognito_domain:       ${{ steps.tf_output.outputs.cognito_domain }}
+      amplify_app_id:       ${{ steps.tf_output.outputs.amplify_app_id }}
+      amplify_app_url:      ${{ steps.tf_output.outputs.amplify_app_url }}
+      api_stage_invoke_url: ${{ steps.tf_output.outputs.api_stage_invoke_url}}
+    
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make terraform.sh executable
+        run: chmod +x .github/scripts/terraform.sh
+
+      - name: Provision using Terraform
+        run: |
+          .github/scripts/terraform.sh init
+          .github/scripts/terraform.sh "apply -auto-approve"
+
+      - name: Capture Terraform outputs
+        id: tf_output
+        run: |
+          echo "cognito_client_id=$(terraform output -raw cognito_client_id)" >> $GITHUB_OUTPUT
+          echo "cognito_domain=$(terraform output -raw cognito_domain)"       >> $GITHUB_OUTPUT
+          echo "amplify_app_id=$(terraform output -raw amplify_app_id)"       >> $GITHUB_OUTPUT
+          echo "amplify_app_url=$(terraform output -raw amplify_app_url)"     >> $GITHUB_OUTPUT
+          echo "api_stage_invoke_url=$(terraform output -raw api_stage)"      >> $GITHUB_OUTPUT
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: infra
 
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Make terraform.sh executable
-      run: chmod +x .github/scripts/terraform.sh
+      - name: Generate config.js from Terraform outputs
+        working-directory: frontend
+        run: |
+          cat > config.js <<EOF
+          const CONFIG = {
+            COGNITO_DOMAIN:       "${{ needs.infra.outputs.cognito_domain }}",
+            CLIENT_ID:            "${{ needs.infra.outputs.cognito_client_id }}",
+            REDIRECT_URI:         "${{ needs.infra.outputs.amplify_app_url }}",
+            API_STAGE_INVOKE_URL: "${{ needs.infra.outputs.api_stage_invoke_url }}"
+          };
+          EOF
 
-    - name: Provision using Terraform
-      run: |
-        .github/scripts/terraform.sh init
-        .github/scripts/terraform.sh "apply -auto-approve"
-    
-    - name: Zip frontend code and upload to S3
-      working-directory: frontend
-      run: |
-          zip -j deploy.zip index.html authentication.js
+      - name: Zip and upload to S3
+        working-directory: frontend
+        run: |
+          zip -j deploy.zip index.html authentication.js config.js
           aws s3 cp deploy.zip s3://read-for-me-frontend/deploy.zip
-    
-    - name: Deploy frontend
-      run: |
-        aws amplify start-deployment \
-            --app-id d1trqyve4ac16v \
+
+      - name: Deploy to Amplify
+        run: |
+          aws amplify start-deployment \
+            --app-id ${{ needs.infra.outputs.amplify_app_id }} \
             --branch-name dev \
             --source-url s3://read-for-me-frontend/deploy.zip \
             --source-url-type ZIP \
             --region ap-south-1
-

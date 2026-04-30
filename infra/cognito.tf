@@ -18,8 +18,8 @@ resource "aws_cognito_user_pool" "read-for-me-users" {
 resource "aws_cognito_user_pool_client" "userpool-client" {
   name                                 = "userpool-client"
   user_pool_id                         = aws_cognito_user_pool.read-for-me-users.id
-  callback_urls                        = ["https://dev.d1trqyve4ac16v.amplifyapp.com"]
-  logout_urls                          = ["https://dev.d1trqyve4ac16v.amplifyapp.com"]
+  callback_urls                        = ["https://dev.${aws_amplify_app.read-for-me-frontend.default_domain}"]
+  logout_urls                          = ["https://dev.${aws_amplify_app.read-for-me-frontend.default_domain}"]
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "openid", "phone"]
@@ -39,6 +39,14 @@ resource "aws_cognito_managed_login_branding" "managed-login" {
 resource "aws_cognito_user_pool_domain" "userpool-domain" {
   domain       = "userpool-domain"
   user_pool_id = aws_cognito_user_pool.read-for-me-users.id
+}
+
+output "cognito_client_id" {
+  value = aws_cognito_user_pool_client.userpool-client.id
+}
+
+output "cognito_domain" {
+  value = "https://${aws_cognito_user_pool_domain.userpool-domain.domain}.auth.${data.aws_region.current.region}.amazoncognito.com"
 }
 
 

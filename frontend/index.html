@@ -451,14 +451,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/filepond@4.31.4/dist/filepond.min.js"></script>
     <script src="./authentication.js"></script>
+    <script src="./config.js"></script> # This config.js is created by Github workflow
     <script>
       // ── Boot ──────────────────────────────────────────────────────────────────
       Auth.ensureAuth().then(authenticated => {
         if (!authenticated) return; // redirecting to Cognito, nothing to do
 
         // ── App ───────────────────────────────────────────────────────────────
-        const UPLOAD_API   = "https://jz60gq1qag.execute-api.ap-south-1.amazonaws.com/dev/upload-url";
-        const DOWNLOAD_API = "https://jz60gq1qag.execute-api.ap-south-1.amazonaws.com/dev/download-url";
+        const UPLOAD_API   = `${CONFIG.API_STAGE_INVOKE_URL}/upload-url`;
+        const DOWNLOAD_API = `${CONFIG.API_STAGE_INVOKE_URL}/download-url`;
 
         const languageEl     = document.getElementById("language");
         const uploadSection  = document.getElementById("upload-section");

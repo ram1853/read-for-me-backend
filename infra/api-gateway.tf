@@ -21,14 +21,24 @@ resource "aws_api_gateway_method" "upload-post-method" {
   rest_api_id   = aws_api_gateway_rest_api.url-generator-api.id
   resource_id   = aws_api_gateway_resource.upload-url.id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito-authorizer.id
+
+  request_parameters = {
+    "method.request.header.Authorization" = true
+  }
 }
 
 resource "aws_api_gateway_method" "download-post-method" {
   rest_api_id   = aws_api_gateway_rest_api.url-generator-api.id
   resource_id   = aws_api_gateway_resource.download-url.id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito-authorizer.id
+
+  request_parameters = {
+    "method.request.header.Authorization" = true
+  }
 }
 
 # For CORS
@@ -157,4 +167,15 @@ resource "aws_api_gateway_stage" "dev" {
   stage_name    = "dev"
   rest_api_id   = aws_api_gateway_rest_api.url-generator-api.id
   deployment_id = aws_api_gateway_deployment.dev-deployment.id
+}
+
+resource "aws_api_gateway_authorizer" "cognito-authorizer" {
+  name                   = "cognito-authorizer"
+  rest_api_id            = aws_api_gateway_rest_api.url-generator-api.id
+  type                   = "COGNITO_USER_POOLS"
+  provider_arns          = ["arn:aws:cognito-idp:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:userpool/${aws_cognito_user_pool.read-for-me-users.id}"]
+}
+
+output "api_stage" {
+  value = aws_api_gateway_stage.dev.invoke_url
 }

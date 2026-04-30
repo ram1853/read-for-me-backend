@@ -1,8 +1,9 @@
 // ── Auth Module ─────────────────────────────────────────────
 const Auth = (() => {
-    const COGNITO_DOMAIN = "https://userpool-domain.auth.ap-south-1.amazoncognito.com";
-    const COGNITO_CLIENT_ID = "5e34glu4abkg5psr996p2mmdhq";
-    const REDIRECT_URI = "https://dev.d1trqyve4ac16v.amplifyapp.com";
+    // authentication.js
+    const COGNITO_DOMAIN = CONFIG.COGNITO_DOMAIN;
+    const COGNITO_CLIENT_ID = CONFIG.CLIENT_ID;
+    const REDIRECT_URI = CONFIG.REDIRECT_URI;
 
     const LOGIN_URL = `${COGNITO_DOMAIN}/login?client_id=${COGNITO_CLIENT_ID}&response_type=code` +
         `&scope=email+openid+phone&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;

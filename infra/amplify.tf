@@ -38,3 +38,11 @@ resource "aws_iam_role_policy_attachment" "attach-policy-to-amplify" {
   role       = aws_iam_role.amplify-role.name
   policy_arn = aws_iam_policy.amplify-policy.arn
 }
+
+output "amplify_app_id" {
+  value = aws_amplify_app.read-for-me-frontend.id
+}
+
+output "amplify_app_url" {
+  value = "https://dev.${aws_amplify_app.read-for-me-frontend.default_domain}"
+}
