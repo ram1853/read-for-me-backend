@@ -87,8 +87,8 @@ const Auth = (() => {
             }
         } catch (e) {
             console.error("Refresh failed", e);
+            alert('refresh failed: '+e);
         }
-
         return false;
     }
 

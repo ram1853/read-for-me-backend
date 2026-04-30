@@ -1,62 +1,151 @@
-# read-for-me-backend
-Backend for ReadForMe Project.
+# ReadForMe
 
-Issues faced:
-CORS:
-when file upload is done using the html, it failed due to cors,
-this is because the browser sees one domain (your html path), and the request is done for a different domain (api gateway call
-for the pre-signed url generation).
-To fix this:
-- If we use HTTP api, cors is automatically taken care of
-- But if we use REST Api, then we have to do 2 things:
-    1) Create an OPTIONS method under your api resource and integrate with a mock integration. Here we should configure both integration response and method response. In Integration response you say what are all the headers and it's static values, for e.g. allow-headers, allow-origins, allow-content-types etc. with their corresponding mapping values. In method response (which is what goes finally to the client should include all those headers you defined in integration response). This first step is needed for the initial browser handshake with our server (as browser first sends this options request to see if the request can be made). Note that every resource you have in your api should have its own options method.
-    2) If you use Lambda Proxy Integration, then your lambda should also return Access-Control-Allow-Origin header in its response
+A serverless application that converts documents into audio. Upload a file, and the app extracts the text, detects its language, optionally translates it to your chosen language, and generates an MP3 using AWS Polly — all orchestrated through a Step Functions state machine.
 
-- But if you try to upload a file to s3 directly using a pre-signed url - then there's no api involved here. This will also fail as the browser sees the request is going to a different domain. Simple fix is to just enable CORS in s3 bucket permissions.
+---
 
-- Here 'origin' refers to the domain from where the request originates from. Here - the domain loaded by browser,
-so instead of giving wildcard in allow-origin from your server response, you can restrict to specific domains if needed.
-Browser -> Server (Browser checks if the response header from server is having the cors header with its domain allowed - if yes requests succeed, else cors issue). e.g browser is loaded in https://myapp.com -> then this is the origin.
+## How It Works
 
-- Also cors is mainly a browser issue. If you try do the same request from curl or postman it will succeed (e.g. your upload.sh)
+1. The frontend requests a pre-signed S3 upload URL from the API.
+2. The file is uploaded directly to S3 from the browser.
+3. An S3 event triggers EventBridge, which starts the Step Functions state machine.
+4. The state machine runs four Lambda functions in sequence:
+   - **Text Extractor** — uses Amazon Textract to extract text from the document.
+   - **Language Detector** — uses Amazon Comprehend to identify the source language.
+   - **Text Translator** — uses Amazon Translate to translate to the target language (skipped if source = target).
+   - **Audio Generator** — uses Amazon Polly to synthesize speech and saves the MP3 to S3.
+5. Job status is tracked in DynamoDB throughout the pipeline.
+6. The frontend polls the download API using the `job_id` and plays the audio once ready.
 
-- if you want to add custom header while uploading an object using the s3 pre-signed url, then the entity which generates the pre-signed url (e.g python or java sdk) should include 'Metadata' in the params. Now while using the pre-signed url, you can set
-this custom header using the header key 'x-amz-meta-<custom-header-key>: <value>'.
-<custom-header-key> should be exactly the same that is used while generating the pre-signed url.
-Later this header can be fetched using 's3_client.head_object(Bucket=bucket, Key=key)' when needed.
-TODO: Test if this works without explictly setting the 'Metadata' while generating pre-signed url (if you get 403, it likely
-means aws sees signature mismatch -> No job_id header while generating url, but seeing job_id header while client uploads!)
+---
 
--- AWS Cognito --
-User logs in with username & password => if valid, authentication is success & cognito returns a 'code'
-Our app should exchange this code for tokens. The api returns the following tokens:
-    id_token: tells about the user identity (frontend authentication)
-    access_token: for authorization (what the user can access) - backend api access
-    refresh_token: for session continuity (id_token & session_token are short lived - typically 1 hour. We don't want to ask the user
-    to login every 1 hour. So we use the refresh_token to get fresh id_token and access_token. refresh_token is long lived)
+## Architecture
 
-Why don't cognito return the tokens directly instead of code? This is to reduce the blast radius.
-When the authentication is success, you see 'code' in the browser url path parameter.
-This code itself is useless unless it is exchanged for tokens. So even if someone peeks your code, he/she must know the cognito client id and cognito domain to get the tokens.
-Now imagine if cognito returned tokens directly - now your browser will store the history of all urls you visited which will now
-have these tokens - This is dangerous, and if someone gets hold of access token, he can call your API.
-All these security practises are to reduce the blast radius (even if someone gets the access token, he can use it for 1 hour only
-after which it expires). Also if a 'code' is used to get the tokens, the same code cannot be used to get another set of tokens.
-A code is a one time use.
+```
+Browser
+  │
+  ├─► API Gateway ──► upload-url-generator (Lambda)  ──► S3 pre-signed URL
+  │
+  ├─► S3 (file upload via pre-signed URL)
+  │       │
+  │       └─► EventBridge ──► Step Functions State Machine
+  │                                   │
+  │                           text-extractor (Textract)
+  │                                   │
+  │                           language-detector (Comprehend)
+  │                                   │
+  │                           text-translator (Translate)
+  │                                   │
+  │                           audio-generator (Polly) ──► S3 (MP3)
+  │
+  └─► API Gateway ──► download-url-generator (Lambda) ──► DynamoDB + S3 pre-signed URL
+```
 
-It will be our frontend app's responsibility to ensure the tokens are valid.
-e.g. before calling your API, check if access token is not expired, if expired then use the refresh token to get new tokens.
-If you don't do this, your api might fail as your api is also secured with access token based authorization.
-If you send expired access token to your api, then your api-gw endpoint secured with cognito access token will reject the request.
-Also you can add custom 'scopes' for your api endpoint authorization ('admin', 'creator', 'viewer' etc.)
+---
 
-Note: This app is supposed to be a public app, so we don't need any role based access to api endpoints or specific authorization needs. Simply if a user is authenticated, then he can access the APIs as well. This means when you attach cognito authorizer to
-api endpoint, you won't be choosing any 'scopes'. Now when you don't attach any scopes api-gw knows, there's no authorization needed, hence it will expect 'id_token' in Authorization header (Bearer <id_token>) instead of 'access_token'.
-But if your app needs authorization flow, then create custom scopes under resource server and then configure authorizer based on business needs (now you will send access_token in header)
+## Project Structure
 
-TODO:
-Running terraform apply after api changes is not automatically re-deploying the api.
-Only after infra is provisioned, we will get to know the cognito id, amplify app id and api gateway stage uri. These values are needed in index.html and authentication.js. So right now i manually update these values and deploy frontend once the infra is provisioned, also the github workflow needs the amplify app id to start the deployment - so it is not fully automated yet.
+```
+read-for-me/
+├── backend/                        # Lambda function source code (Python)
+│   ├── upload_url_generator.py     # Generates S3 pre-signed PUT URL for file upload
+│   ├── download_url_generator.py   # Checks job status in DynamoDB; returns pre-signed GET URL for the MP3
+│   ├── text_extractor.py           # Extracts text from uploaded document using Textract
+│   ├── language_detector.py        # Detects dominant language using Comprehend
+│   ├── text_translator.py          # Translates text to target language using Translate
+│   ├── audio_generator.py          # Synthesizes MP3 from text using Polly; uploads to S3
+│   └── lambda_function_*.zip       # Deployment packages uploaded to AWS by Terraform
+│
+├── frontend/                       # Static web frontend
+│   ├── index.html                  # Main UI — file upload, language selection, audio playback
+│   └── authentication.js           # Cognito OAuth2 PKCE flow — login, token exchange, refresh
+│
+├── infra/                          # Terraform infrastructure-as-code (AWS, ap-south-1)
+│   ├── main.tf                     # Provider config and S3 remote state backend
+│   ├── common.tf                   # Shared IAM trust policies and input variables
+│   ├── api-gateway.tf              # REST API Gateway with Cognito authorizer
+│   ├── cognito.tf                  # Cognito User Pool and App Client
+│   ├── amplify.tf                  # Amplify app for hosting the frontend
+│   ├── dynamodb.tf                 # DynamoDB table (ReadForMe) for job tracking
+│   ├── event-bridge.tf             # EventBridge rule to trigger state machine on S3 upload
+│   ├── step-function-state-machine.tf  # Step Functions state machine definition
+│   ├── lambda-upload-url-generator.tf
+│   ├── lambda-download-url-generator.tf
+│   ├── lambda-text-extractor.tf
+│   ├── lambda-language-detector.tf
+│   ├── lambda-text-translator.tf
+│   └── lambda-audio-generator.tf
+│
+└── .github/
+    ├── workflows/
+    │   └── build_deploy.yaml       # CI/CD pipeline — runs Terraform, then deploys frontend to Amplify
+    └── scripts/
+        └── terraform.sh            # Helper script to run Terraform from the infra/ directory
+```
 
---AWS Amplify--
-Amplify has to pull the frontend zip from s3 bucket for deployment. so make sure the s3 bucket policy allows amplify to do that.
+---
+
+## Languages & Technologies
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3 |
+| Infrastructure | Terraform (HCL) |
+| Frontend | HTML, JavaScript (vanilla) |
+| CI/CD | GitHub Actions |
+| AWS Services | Lambda, API Gateway, S3, Step Functions, EventBridge, DynamoDB, Textract, Comprehend, Translate, Polly, Cognito, Amplify |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.x
+- AWS CLI configured with credentials that have sufficient permissions
+- An S3 bucket named `read-for-me-tfstate` for Terraform remote state (create this manually once)
+
+### Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/read-for-me.git
+cd read-for-me
+```
+
+### Deploy infrastructure
+
+```bash
+cd infra
+terraform init
+terraform apply
+```
+
+Terraform will provision all AWS resources and output the Cognito domain, client ID, Amplify app URL, and API Gateway stage URL.
+
+### Deploy the frontend
+
+The CI/CD pipeline handles frontend deployment automatically on every push to `main`. It:
+1. Runs `terraform apply` to ensure infrastructure is up to date.
+2. Generates a `config.js` file from Terraform outputs (Cognito settings, API URL).
+3. Zips `index.html`, `authentication.js`, and `config.js`, uploads to S3, and triggers an Amplify deployment.
+
+To deploy manually, replicate the steps in `.github/workflows/build_deploy.yaml`.
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | AWS access key for CI/CD |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key for CI/CD |
+
+---
+
+## DynamoDB Job Tracking
+
+Each upload creates a job record in the `ReadForMe` table with the following lifecycle:
+
+```
+TEXT_EXTRACTED → DOMINANT_LANGUAGE_DETECTED → TEXT_TRANSLATION_DONE → AUDIO_GENERATION_DONE
+```
+
+The download API returns the job status and, once complete, a pre-signed URL to stream or download the generated MP3.
