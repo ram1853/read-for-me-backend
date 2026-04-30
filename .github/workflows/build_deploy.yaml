@@ -29,19 +29,16 @@ jobs:
       - name: Provision using Terraform
         run: |
           .github/scripts/terraform.sh init
-          .github/scripts/terraform.sh "apply -auto-approve"
+          .github/scripts/terraform.sh apply -auto-approve
 
       - name: Capture Terraform outputs
         id: tf_output
         run: |
-          get_output() {
-            .github/scripts/terraform.sh "output -raw $1"
-          }
-          echo "cognito_client_id=$(get_output cognito_client_id)" >> $GITHUB_OUTPUT
-          echo "cognito_domain=$(get_output cognito_domain)"       >> $GITHUB_OUTPUT
-          echo "amplify_app_id=$(get_output amplify_app_id)"       >> $GITHUB_OUTPUT
-          echo "amplify_app_url=$(get_output amplify_app_url)"     >> $GITHUB_OUTPUT
-          echo "api_stage_invoke_url=$(get_output api_stage)"      >> $GITHUB_OUTPUT
+          echo "cognito_client_id=$(.github/scripts/terraform.sh output -raw cognito_client_id)" >> $GITHUB_OUTPUT
+          echo "cognito_domain=$(.github/scripts/terraform.sh output -raw cognito_domain)"       >> $GITHUB_OUTPUT
+          echo "amplify_app_id=$(.github/scripts/terraform.sh output -raw amplify_app_id)"       >> $GITHUB_OUTPUT
+          echo "amplify_app_url=$(.github/scripts/terraform.sh output -raw amplify_app_url)"     >> $GITHUB_OUTPUT
+          echo "api_stage_invoke_url=$(.github/scripts/terraform.sh output -raw api_stage)"      >> $GITHUB_OUTPUT
 
   deploy:
     runs-on: ubuntu-latest
