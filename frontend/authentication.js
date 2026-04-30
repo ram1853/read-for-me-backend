@@ -81,13 +81,11 @@ const Auth = (() => {
             const data = await resp.json();
 
             if (data.id_token) {
-                console.log('new tokens obtained using refresh-token, saving them to session storage');
                 saveTokens(data);
                 return true;
             }
         } catch (e) {
             console.error("Refresh failed", e);
-            alert('refresh failed: '+e);
         }
         return false;
     }
@@ -145,7 +143,6 @@ const Auth = (() => {
         }
 
         if (isExpired(idToken)) {
-            console.log('id token is expired, getting new token using the refresh-token');
             const refreshed = await refresh();
 
             if (!refreshed) {
